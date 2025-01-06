@@ -1,16 +1,78 @@
-from tkinter import *
+import customtkinter
 import random
+from tkinter import *
+
+customtkinter.set_appearance_mode("dark")
+customtkinter.set_default_color_theme("blue")
+
+root = customtkinter.CTk()
+root.geometry("1920x1080")
+root.title("Steam App")
+
+VALID_USERNAMES = {"Marvin", "Levi", "Mashal", "Abdullah"}
+VALID_PASSWORD = "pixelpros123"
 
 galgje_state = {}
 raadnummer_state = {}
 
-def verwijderen_main_frame():
+current_user = None
+main_frame = None
+
+def toggle_mode():
+    current_mode = customtkinter.get_appearance_mode()
+    new_mode = "light" if current_mode == "dark" else "dark"
+    customtkinter.set_appearance_mode(new_mode)
+
+def clear_main_frame():
     for widget in main_frame.winfo_children():
         widget.destroy()
 
+def logout():
+    global current_user
+    current_user = None
+    for widget in root.winfo_children():
+        widget.destroy()
+    create_login_page()
+
+def show_friends():
+    """Display the Friends List."""
+    clear_main_frame()
+    label = customtkinter.CTkLabel(
+        main_frame,
+        text="Friends List",
+        font=("Helvetica", 30, "bold")
+    )
+    label.pack(pady=10)
+
+    friends = [user for user in VALID_USERNAMES if user != current_user]
+    for friend in friends:
+        friend_label = customtkinter.CTkLabel(
+            main_frame,
+            text=friend,
+            font=("Arial", 18)
+        )
+        friend_label.pack(pady=5)
+
+def show_settings():
+    clear_main_frame()
+    toggle_button = customtkinter.CTkButton(
+        main_frame,
+        text="Toggle Light/Dark Mode",
+        command=toggle_mode,
+        corner_radius=10
+    )
+    toggle_button.pack(pady=20)
+    logout_button = customtkinter.CTkButton(
+        main_frame,
+        text="Log Out",
+        command=logout,
+        corner_radius=10
+    )
+    logout_button.pack(pady=20)
+
 def play_hangman():
     global galgje_state
-    verwijderen_main_frame()
+    clear_main_frame()
 
     woordenlijst = ["telefoon", "water", "continent", "laptop", "python", "alfabet"]
     woord_te_raden = random.choice(woordenlijst)
@@ -21,47 +83,64 @@ def play_hangman():
         "max_fouten": 6
     }
 
+    canvas = customtkinter.CTkCanvas(main_frame, width=300, height=400, bg="#0B0F1D", highlightthickness=0)
+    canvas.pack(pady=20)
+
+    canvas.create_line(50, 350, 250, 350, fill="white", width=3)
+    canvas.create_line(150, 350, 150, 50, fill="white", width=3)
+    canvas.create_line(150, 50, 200, 50, fill="white", width=3)
+    canvas.create_line(200, 50, 200, 100, fill="white", width=3)
+
+    def draw_stickman():
+        parts = [
+            lambda: canvas.create_oval(180, 100, 220, 140, outline="white", width=3),
+            lambda: canvas.create_line(200, 140, 200, 220, fill="white", width=3),
+            lambda: canvas.create_line(200, 220, 170, 260, fill="white", width=3),
+            lambda: canvas.create_line(200, 220, 230, 260, fill="white", width=3),
+            lambda: canvas.create_line(200, 160, 170, 200, fill="white", width=3),
+            lambda: canvas.create_line(200, 160, 230, 200, fill="white", width=3),
+        ]
+        if galgje_state["fouten"] <= len(parts):
+            parts[galgje_state["fouten"] - 1]()
+
     def submit_letter():
         letter = input_entry.get().strip().lower()
-        input_entry.delete(0, END)
+        input_entry.delete(0, 'end')
 
         if letter in galgje_state["woord"]:
             for i, char in enumerate(galgje_state["woord"]):
                 if char == letter:
                     galgje_state["geraden_woord"][i] = letter
-            result_label.config(text="Goedzo!")
+            result_label.configure(text="Good job!")
         else:
             galgje_state["fouten"] += 1
-            result_label.config(text=f"Fout! Nog {galgje_state['max_fouten'] - galgje_state['fouten']} kansen.")
+            draw_stickman()
+            result_label.configure(text=f"Wrong! {galgje_state['max_fouten'] - galgje_state['fouten']} tries left.")
 
-        word_label.config(text=" ".join(galgje_state["geraden_woord"]))
+        word_label.configure(text=" ".join(galgje_state["geraden_woord"]))
 
         if "_" not in galgje_state["geraden_woord"]:
-            result_label.config(text=f"Gewonnen! Het woord was '{galgje_state['woord']}'.")
-            submit_button.config(state=DISABLED)
+            result_label.configure(text=f"You won! The word was '{galgje_state['woord']}'.")
+            submit_button.configure(state="disabled")
         elif galgje_state["fouten"] >= galgje_state["max_fouten"]:
-            result_label.config(text=f"Verloren! Het woord was '{galgje_state['woord']}'.")
-            submit_button.config(state=DISABLED)
+            result_label.configure(text=f"You lost! The word was '{galgje_state['woord']}'.")
+            submit_button.configure(state="disabled")
 
-    word_label = Label(main_frame, text=" ".join(galgje_state["geraden_woord"]), font=("Courier", 18), bg="#0B0F1D", fg="white")
+    word_label = customtkinter.CTkLabel(main_frame, text=" ".join(galgje_state["geraden_woord"]), font=("Courier", 18))
     word_label.pack(pady=20)
 
-    input_entry = Entry(main_frame, font=("Arial", 16))
+    input_entry = customtkinter.CTkEntry(main_frame, placeholder_text="Enter a letter")
     input_entry.pack(pady=10)
 
-    submit_button = Button(
-        main_frame, text="Submit Letter", command=submit_letter,
-        bg="#1C2A3A", fg="white", font=("Arial", 16)
-    )
+    submit_button = customtkinter.CTkButton(main_frame, text="Submit Letter", command=submit_letter)
     submit_button.pack(pady=10)
 
-    result_label = Label(main_frame, text="", font=("Arial", 14), bg="#0B0F1D", fg="white")
+    result_label = customtkinter.CTkLabel(main_frame, text="", font=("Arial", 14))
     result_label.pack(pady=10)
-
 
 def play_guess_number():
     global raadnummer_state
-    verwijderen_main_frame()
+    clear_main_frame()
 
     raadnummer_state = {
         "nummer": random.randint(1, 20),
@@ -71,113 +150,165 @@ def play_guess_number():
 
     def submit_guess():
         guess = input_entry.get().strip()
-        input_entry.delete(0, END)
+        input_entry.delete(0, 'end')
 
         if not guess.isdigit():
-            result_label.config(text="Voer een geldig getal in.")
+            result_label.configure(text="Enter a valid number.")
             return
 
         guess = int(guess)
         raadnummer_state["pogingen"] += 1
 
         if guess < raadnummer_state["nummer"]:
-            result_label.config(text="Hoger!")
+            result_label.configure(text="Higher!")
         elif guess > raadnummer_state["nummer"]:
-            result_label.config(text="Lager!")
+            result_label.configure(text="Lower!")
         else:
-            result_label.config(text=f"Goedzo! Het nummer was {raadnummer_state['nummer']}.")
-            submit_button.config(state=DISABLED)
+            result_label.configure(text=f"Correct! The number was {raadnummer_state['nummer']}.")
+            submit_button.configure(state="disabled")
             return
 
         if raadnummer_state["pogingen"] >= raadnummer_state["max_pogingen"]:
             raadnummer_state["nummer"] = random.randint(1, 20)
             raadnummer_state["pogingen"] = 0
-            result_label.config(text="Je kansen zijn op! Het nummer is veranderd.")
+            result_label.configure(text="Out of tries! The number has been reset.")
 
-    # UI for Guess the Number
-    input_entry = Entry(main_frame, font=("Arial", 16))
+    input_entry = customtkinter.CTkEntry(main_frame, placeholder_text="Enter your guess")
     input_entry.pack(pady=10)
 
-    submit_button = Button(
-        main_frame, text="Submit Guess", command=submit_guess,
-        bg="#1C2A3A", fg="white", font=("Arial", 16)
-    )
+    submit_button = customtkinter.CTkButton(main_frame, text="Submit Guess", command=submit_guess)
     submit_button.pack(pady=10)
 
-    result_label = Label(main_frame, text="", font=("Arial", 14), bg="#0B0F1D", fg="white")
+    result_label = customtkinter.CTkLabel(main_frame, text="", font=("Arial", 14))
     result_label.pack(pady=10)
 
-
 def show_games():
-    verwijderen_main_frame()
-    label = Label(main_frame, text="Games", bg="#0B0F1D", fg="white", font=("Arial", 20))
+    clear_main_frame()
+    label = customtkinter.CTkLabel(
+        main_frame,
+        text="Games",
+        font=("Helvetica", 30, "bold")
+    )
     label.pack(pady=10)
-    hangman_button = Button(
+    hangman_button = customtkinter.CTkButton(
         main_frame,
         text="Play Hangman",
-        command=play_hangman,
-        bg="#1C2A3A",
-        fg="white",
-        font=("Arial", 16),
-        padx=10,
-        pady=10,
-        relief="flat"
+        command=play_hangman
     )
     hangman_button.pack(pady=10)
-    guess_number_button = Button(
+    guess_number_button = customtkinter.CTkButton(
         main_frame,
         text="Play Guess the Number",
-        command=play_guess_number,
-        bg="#1C2A3A",
-        fg="white",
-        font=("Arial", 16),
-        padx=10,
-        pady=10,
-        relief="flat"
+        command=play_guess_number
     )
     guess_number_button.pack(pady=10)
 
+def create_dashboard():
+    global main_frame
+    top_menu = customtkinter.CTkFrame(master=root, height=100)
+    top_menu.pack(fill="x")
 
-def show_friends():
-    verwijderen_main_frame()
-    label = Label(main_frame, text="Friends List", bg="#0B0F1D", fg="white", font=("Arial", 20))
-    label.pack(pady=10)
+    profile_label = customtkinter.CTkLabel(
+        top_menu,
+        text=f"Profile: {current_user}",
+        font=("Arial", 16)
+    )
+    profile_label.pack(side="right", padx=10)
 
-def show_configurations():
-    verwijderen_main_frame()
-    label = Label(main_frame, text="Settings", bg="#0B0F1D", fg="white", font=("Arial", 20))
-    label.pack(pady=10)
+    main_frame = customtkinter.CTkFrame(master=root)
+    main_frame.pack(fill="both", expand=True)
 
-root = Tk()
-root.title("Steam Dashboard")
-root.geometry("800x600")
+    games_button = customtkinter.CTkButton(
+        top_menu,
+        text="Games",
+        command=show_games,
+        corner_radius=10,
+        height=70,
+        font=("Helvetica", 20, "bold")
+    )
+    games_button.pack(side="left", padx=10, pady=10)
 
-top_menu = Frame(root, bg="#0A0E1A", height=50)
-top_menu.pack(fill="x")
+    friends_button = customtkinter.CTkButton(
+        top_menu,
+        text="Friends",
+        command=show_friends,
+        corner_radius=10,
+        height=70,
+        font=("Helvetica", 20, "bold")
+    )
+    friends_button.pack(side="left", padx=10, pady=10)
 
-button_style = {
-    'bg': "#1C2A3A",
-    'fg': "white",
-    'padx': 20,
-    'pady': 10,
-    'borderwidth': 0,
-    'activebackground': "#3A506B",
-    'relief': "flat"
-}
+    settings_button = customtkinter.CTkButton(
+        top_menu,
+        text="Settings",
+        command=show_settings,
+        corner_radius=10,
+        height=70,
+        font=("Helvetica", 20, "bold")
+    )
+    settings_button.pack(side="left", padx=10, pady=10)
 
-games_button = Button(top_menu, text="Games", command=show_games, **button_style)
-games_button.pack(side="left", padx=5, pady=5)
+    show_games()
 
-friends_button = Button(top_menu, text="Friends", command=show_friends, **button_style)
-friends_button.pack(side="left", padx=5, pady=5)
+def login():
+    username = entry1.get()
+    password = entry2.get()
 
-config_button = Button(top_menu, text="Settings", command=show_configurations, **button_style)
-config_button.pack(side="left", padx=5, pady=5)
+    if username in VALID_USERNAMES and password == VALID_PASSWORD:
+        global current_user
+        current_user = username
 
-main_frame = Frame(root, bg="#0B0F1D")
-main_frame.pack(fill="both", expand=True)
+        for widget in root.winfo_children():
+            widget.destroy()
 
-show_games()
+        create_dashboard()
+    else:
+        error_label.configure(text="Invalid username or password!", text_color="red")
 
-root.geometry("1920x1080")
+def create_login_page():
+    frame = customtkinter.CTkFrame(master=root)
+    frame.pack(pady=20, padx=60, fill="both", expand=True)
+
+    header_label = customtkinter.CTkLabel(
+        master=frame,
+        text="Steam",
+        font=("Helvetica", 50, "bold")
+    )
+    header_label.pack(pady=20)
+
+    global entry1, entry2, error_label
+    entry1 = customtkinter.CTkEntry(
+        master=frame,
+        placeholder_text="Username"
+    )
+    entry1.pack(pady=12, padx=10)
+
+    entry2 = customtkinter.CTkEntry(
+        master=frame,
+        placeholder_text="Password",
+        show="*"
+    )
+    entry2.pack(pady=12, padx=10)
+
+    button = customtkinter.CTkButton(
+        master=frame,
+        text="Login",
+        command=login
+    )
+    button.pack(pady=12, padx=10)
+
+    checkbox = customtkinter.CTkCheckBox(
+        master=frame,
+        text="Remember Me"
+    )
+    checkbox.pack(pady=12, padx=10)
+
+    error_label = customtkinter.CTkLabel(
+        master=frame,
+        text="",
+        font=("Arial", 12)
+    )
+    error_label.pack(pady=12)
+
+create_login_page()
 root.mainloop()
