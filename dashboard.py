@@ -1,6 +1,6 @@
 import customtkinter
 import random
-from tkinter import *
+from PIL import Image
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("blue")
@@ -35,8 +35,14 @@ def logout():
     create_login_page()
 
 def show_friends():
-    """Display the Friends List."""
     clear_main_frame()
+
+    # Load profile icon
+    profile_image = customtkinter.CTkImage(  # Replace with your full path
+        dark_image=Image.open("pfpicon.jpg"),
+        size=(30, 30)  # Adjust size as needed
+    )
+    # Add the title
     label = customtkinter.CTkLabel(
         main_frame,
         text="Friends List",
@@ -44,14 +50,28 @@ def show_friends():
     )
     label.pack(pady=10)
 
+    # Display each friend with their icon
     friends = [user for user in VALID_USERNAMES if user != current_user]
     for friend in friends:
+        friend_frame = customtkinter.CTkFrame(master=main_frame, fg_color="transparent")
+        friend_frame.pack(pady=5, padx=20, anchor="w")
+
+        # Add icon
+        friend_icon_label = customtkinter.CTkLabel(
+            friend_frame,
+            image=profile_image,
+            text=""  # No text for the image label
+        )
+        friend_icon_label.pack(side="left", padx=5)
+
+        # Add friend's name
         friend_label = customtkinter.CTkLabel(
-            main_frame,
+            friend_frame,
             text=friend,
             font=("Arial", 18)
         )
-        friend_label.pack(pady=5)
+        friend_label.pack(side="left", padx=10)
+
 
 def show_settings():
     clear_main_frame()
@@ -208,12 +228,31 @@ def create_dashboard():
     top_menu = customtkinter.CTkFrame(master=root, height=100)
     top_menu.pack(fill="x")
 
+    # Load profile icon
+    profile_image = customtkinter.CTkImage(  # Replace with your full path
+        dark_image=Image.open("pfpicon.jpg"),
+        size=(30, 30)  # Adjust size as needed
+    )
+
+    # Create a frame to hold the image and text
+    profile_frame = customtkinter.CTkFrame(master=top_menu, fg_color="transparent")
+    profile_frame.pack(side="right", padx=10)
+
+    # Add image
+    profile_icon_label = customtkinter.CTkLabel(
+        profile_frame,
+        image=profile_image,
+        text=""  # No text for the image label
+    )
+    profile_icon_label.pack(side="left", padx=5)
+
+    # Add username next to the image
     profile_label = customtkinter.CTkLabel(
-        top_menu,
-        text=f"Profile: {current_user}",
+        profile_frame,
+        text=current_user,
         font=("Arial", 16)
     )
-    profile_label.pack(side="right", padx=10)
+    profile_label.pack(side="left", padx=5)
 
     main_frame = customtkinter.CTkFrame(master=root)
     main_frame.pack(fill="both", expand=True)
@@ -297,11 +336,24 @@ def create_login_page():
     )
     button.pack(pady=12, padx=10)
 
+    # Remember Me Checkbox - Shifted to the right
+    checkbox_frame = customtkinter.CTkFrame(master=frame, fg_color="transparent")
+    checkbox_frame.pack(pady=10, fill="x")
     checkbox = customtkinter.CTkCheckBox(
-        master=frame,
+        master=checkbox_frame,
         text="Remember Me"
     )
-    checkbox.pack(pady=12, padx=10)
+    checkbox.pack(side="left", padx=(700, 0))  # Adjust 200 for positioning
+
+    forgot_password = customtkinter.CTkLabel(
+        master=checkbox_frame,
+        text="Forgot password?",
+        font=("Arial", 12, "underline"),
+        text_color="#A0A0A0",
+        cursor="hand2"
+    )
+    forgot_password.pack(side="right", padx=(0, 700))
+    forgot_password.bind("<Button-1>", lambda e: show_forgot_password_popup())
 
     error_label = customtkinter.CTkLabel(
         master=frame,
@@ -309,6 +361,29 @@ def create_login_page():
         font=("Arial", 12)
     )
     error_label.pack(pady=12)
+
+def show_forgot_password_popup():
+    popup = customtkinter.CTkToplevel(root)
+    popup.geometry("400x200")
+    popup.title("Forgot Password")
+    popup.transient(root)
+    popup.grab_set()
+
+    popup_label = customtkinter.CTkLabel(
+        popup,
+        text="Usernames: Levi, Mashal, Marvin & Abdullah\nPassword: pixelpros123",
+        font=("Arial", 14),
+        justify="center"
+    )
+    popup_label.pack(expand=True, padx=20, pady=20)
+
+    ok_button = customtkinter.CTkButton(
+        popup,
+        text="OK",
+        command=popup.destroy
+    )
+    ok_button.pack(pady=20)
+    popup.wait_window()
 
 create_login_page()
 root.mainloop()
