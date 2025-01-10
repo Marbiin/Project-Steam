@@ -1,6 +1,9 @@
 import customtkinter
 import random
 from PIL import Image
+import tkinter as tk
+from tkinter import ttk
+import json
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("blue")
@@ -198,25 +201,136 @@ def play_guess_number():
     result_label.pack(pady=10)
 
 def show_games():
+    global steam_games
+    # Function code here
+
     clear_main_frame()
+
+    # Initialize state variables at the top-level scope of the function
+    games_displayed = 0
+    games_per_page = 15
+    current_filter = "name"
+
+    # Sorting games initially by name
+    current_games = sorted(steam_games, key=lambda x: x["name"].lower())
+
+    def update_games():
+        """Update the displayed games based on the current filter."""
+        nonlocal current_filter, current_games
+        if current_filter == "nano":
+            filtered_games = [g for g in steam_games if g["name"] in ["Hangman", "Guess the Number"]]
+        elif current_filter == "popularity":
+            filtered_games = sorted(steam_games, key=lambda x: x["positive_ratings"], reverse=True)
+        elif current_filter == "date":
+            filtered_games = sorted(steam_games, key=lambda x: x["release_date"])
+        elif current_filter == "name":
+            filtered_games = sorted(steam_games, key=lambda x: x["name"].lower())
+        else:
+            filtered_games = steam_games
+
+        current_games.clear()
+        current_games.extend(filtered_games)
+        load_games()
+
+    def load_games():
+        """Display games from the current list, paginated."""
+        nonlocal games_displayed
+        for game in current_games[games_displayed:games_displayed + games_per_page]:
+            game_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
+            game_frame.pack(pady=5, padx=10, fill="x", expand=True)
+
+            game_label = customtkinter.CTkLabel(
+                game_frame,
+                text=game["name"],
+                font=("Arial", 18)
+            )
+            game_label.pack(side="left", padx=10)
+
+            def show_game_details(game=game):
+                """Show detailed game information in a popup."""
+                details_popup = customtkinter.CTkToplevel(root)
+                details_popup.geometry("400x600")
+                details_popup.title(game["name"])
+
+                details_text = f"""
+Name: {game["name"]}
+Release Date: {game["release_date"]}
+Developer: {game["developer"]}
+Publisher: {game["publisher"]}
+Genres: {game["genres"]}
+Platforms: {game["platforms"]}
+Categories: {game["categories"]}
+Achievements: {game["achievements"]}
+Positive Ratings: {game["positive_ratings"]}
+Negative Ratings: {game["negative_ratings"]}
+Price: ${game["price"]}
+"""
+                details_label = customtkinter.CTkLabel(
+                    details_popup,
+                    text=details_text,
+                    font=("Arial", 14),
+                    justify="left",
+                    wraplength=350
+                )
+                details_label.pack(pady=20, padx=20)
+
+            details_button = customtkinter.CTkButton(
+                game_frame,
+                text="Details",
+                command=show_game_details
+            )
+            details_button.pack(side="right", padx=10)
+
+        games_displayed += games_per_page
+
+    def show_more():
+        """Load more games into the list."""
+        load_games()
+
+    def set_filter(new_filter):
+        """Update the filter and reload games."""
+        nonlocal current_filter
+        current_filter = new_filter
+        update_games()
+
+    # Create header and filter options
     label = customtkinter.CTkLabel(
         main_frame,
-        text="Games",
+        text="Steam Games",
         font=("Helvetica", 30, "bold")
     )
     label.pack(pady=10)
-    hangman_button = customtkinter.CTkButton(
-        main_frame,
-        text="Play Hangman",
-        command=play_hangman
+
+    filter_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
+    filter_frame.pack(pady=10, fill="x")
+
+    filter_label = customtkinter.CTkLabel(
+        filter_frame,
+        text="Sort by:",
+        font=("Arial", 14)
     )
-    hangman_button.pack(pady=10)
-    guess_number_button = customtkinter.CTkButton(
+    filter_label.pack(side="left", padx=5)
+
+    filters = [("Nano", "nano"), ("Popularity", "popularity"), ("Date", "date"), ("Name", "name")]
+    for label_text, filter_value in filters:
+        filter_button = customtkinter.CTkButton(
+            filter_frame,
+            text=label_text,
+            command=lambda fv=filter_value: set_filter(fv)
+        )
+        filter_button.pack(side="left", padx=5)
+
+    # Initialize games list
+    load_games()
+
+    # Add "Show More" button
+    show_more_button = customtkinter.CTkButton(
         main_frame,
-        text="Play Guess the Number",
-        command=play_guess_number
+        text="Show More",
+        command=show_more
     )
-    guess_number_button.pack(pady=10)
+    show_more_button.pack(pady=10)
+
 
 def create_dashboard():
     global main_frame
