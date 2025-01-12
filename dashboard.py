@@ -3,7 +3,6 @@ from PIL import Image
 from raadnummer import play_guess_number
 from galgje import play_hangman
 import json
-import os
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("blue")
@@ -14,72 +13,80 @@ root.title("Steam App")
 
 VALID_USERNAMES = {"Marvin", "Levi", "Mashal", "Abdullah"}
 VALID_PASSWORD = "pixelpros123"
-
-current_user = None
-main_frame = None
+mode = "dark"
 
 def clear_main_frame():
     for widget in main_frame.winfo_children():
         widget.destroy()
 
-def logout():
-    global current_user
-    current_user = None
-    for widget in root.winfo_children():
-        widget.destroy()
-    create_login_page()
-
 def show_mvp_games():
-    def apply_filter():
-        selected_filter = filter_dropdown.get()
-        key_mapping = {
-            "Name": "name",
-            "Price": "price",
-            "Owners": "owners",
-            "Positive Ratings": "positive_ratings",
-            "Negative Ratings": "negative_ratings",
-        }
-        key = key_mapping.get(selected_filter, "name")
+    clear_main_frame()
 
-        try:
-            if key == "owners":
-                sorted_games = sorted(games_data, key=lambda x: int(x[key].split(" - ")[0]))
-            else:
-                sorted_games = sorted(games_data, key=lambda x: x.get(key, 0))
-        except Exception as e:
-            print(f"Error during sorting: {e}")
-            sorted_games = games_data
+    file = open("steam.json", "r")
+    games_data = json.load(file)
+    file.close()
 
-        display_games(sorted_games)
+    games_per_page = 50
+    total_pages = (len(games_data) + games_per_page - 1) // games_per_page
+    current_page = [1]
+    current_sort = ["Alphabetical Order"]
 
-    def display_games(games):
-        """
-        Clears the current game display and shows games in the given order.
-        """
-        for widget in main_frame.winfo_children():
-            widget.destroy()
+    def load_page(page, sort_by):
+        current_page[0] = page
+        current_sort[0] = sort_by
 
-        # Re-add the title and filter UI
+        if sort_by == "Owners":
+            sorted_games = sorted(games_data, key=lambda x: x.get("owners", 0), reverse=True)
+        elif sort_by == "Release Date":
+            sorted_games = sorted(games_data, key=lambda x: x.get("release_date", ""), reverse=True)
+        else:
+            sorted_games = sorted(
+                [game for game in games_data if game.get("name", "").lower().startswith("a")],
+                key=lambda x: x.get("name", "").lower()
+            )
+
+        clear_main_frame()
+
         title_label = customtkinter.CTkLabel(
             main_frame, text="MVP Games", font=("Helvetica", 20, "bold")
         )
         title_label.pack(pady=10)
 
-        filter_frame.pack(fill="x", padx=10, pady=5)
+        filter_frame = customtkinter.CTkFrame(main_frame)
+        filter_frame.pack(fill="x", pady=10, padx=10)
 
-        # Add game entries
-        for game in games[:50]:  # Display only the first 50 games
-            game_frame = customtkinter.CTkFrame(main_frame, corner_radius=10)
+        sort_label = customtkinter.CTkLabel(
+            filter_frame, text="Filter by:", font=("Helvetica", 14)
+        )
+        sort_label.pack(side="left", padx=5)
+
+        sort_options = ["Alphabetical Order", "Owners", "Release Date"]
+        sort_dropdown = customtkinter.CTkOptionMenu(
+            filter_frame,
+            values=sort_options,
+            command=lambda choice: load_page(1, choice)
+        )
+        sort_dropdown.set(current_sort[0])
+        sort_dropdown.pack(side="right", padx=5)
+
+        scrollable_frame = customtkinter.CTkScrollableFrame(master=main_frame)
+        scrollable_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        start_index = (page - 1) * games_per_page
+        end_index = start_index + games_per_page
+
+        for game in sorted_games[start_index:end_index]:
+            game_frame = customtkinter.CTkFrame(scrollable_frame, corner_radius=10)
             game_frame.pack(fill="x", padx=10, pady=5)
 
-            title = game.get("name", "Unknown Game")
-            price = game.get("price", "Unknown Price")
-            genres = game.get("genres", "Unknown Genres")
-            positive_ratings = game.get("positive_ratings", 0)
-            negative_ratings = game.get("negative_ratings", 0)
+            title = game.get("name")
+            price = game.get("price")
+            genres = game.get("genres")
+            owners = game.get("owners")
+            release_date = game.get("release_date")
 
             title_label = customtkinter.CTkLabel(
-                game_frame, text=f"Name: {title}", font=("Helvetica", 14, "bold")
+                game_frame, text=f"{title}", font=("Helvetica", 14, "bold")
             )
             title_label.pack(anchor="w", padx=10, pady=2)
 
@@ -93,47 +100,45 @@ def show_mvp_games():
             )
             genres_label.pack(anchor="w", padx=10, pady=2)
 
-            ratings_label = customtkinter.CTkLabel(
-                game_frame,
-                text=f"Ratings: {positive_ratings} Positive, {negative_ratings} Negative",
-                font=("Helvetica", 12),
+            owners_label = customtkinter.CTkLabel(
+                game_frame, text=f"Owners: {owners}", font=("Helvetica", 12)
             )
-            ratings_label.pack(anchor="w", padx=10, pady=2)
-    clear_main_frame()
-    file = open("steam.json", "r")
-    games_data = json.load(file)
-    file.close()
-    title_label = customtkinter.CTkLabel(
-        main_frame, text="MVP Games", font=("Helvetica", 20, "bold")
-    )
-    title_label.pack(pady=10)
+            owners_label.pack(anchor="w", padx=10, pady=2)
 
-    for game in games_data[:50]:
-        game_frame = customtkinter.CTkFrame(main_frame, corner_radius=10)
-        game_frame.pack(fill="x", padx=10, pady=5)
+            release_date_label = customtkinter.CTkLabel(
+                game_frame, text=f"Release Date: {release_date}", font=("Helvetica", 12)
+            )
+            release_date_label.pack(anchor="w", padx=10, pady=2)
 
-        title = game.get("name", "Unknown Game")
-        price = game.get("price", "Unknown Price")
-        genres = game.get("genres", "Unknown Genres")
+        pagination_frame = customtkinter.CTkFrame(master=main_frame, fg_color="transparent")
+        pagination_frame.pack(pady=10)
 
-        title_label = customtkinter.CTkLabel(
-            game_frame, text=f"Name: {title}", font=("Helvetica", 14, "bold")
+        if current_page[0] > 1:
+            prev_button = customtkinter.CTkButton(
+                pagination_frame,
+                text="< Previous",
+                command=lambda: load_page(current_page[0] - 1, current_sort[0])
+            )
+            prev_button.pack(side="left", padx=5)
+
+        page_label = customtkinter.CTkLabel(
+            pagination_frame,
+            text=f"Page {current_page[0]} of {total_pages}",
+            font=("Helvetica", 14)
         )
-        title_label.pack(anchor="w", padx=10, pady=2)
+        page_label.pack(side="left", padx=10)
 
-        price_label = customtkinter.CTkLabel(
-            game_frame, text=f"Price: ${price:.2f}", font=("Helvetica", 12)
-        )
-        price_label.pack(anchor="w", padx=10, pady=2)
-
-        genres_label = customtkinter.CTkLabel(
-            game_frame, text=f"Genres: {genres}", font=("Helvetica", 12)
-        )
-        genres_label.pack(anchor="w", padx=10, pady=2)
+        if current_page[0] < total_pages:
+            next_button = customtkinter.CTkButton(
+                pagination_frame,
+                text="Next >",
+                command=lambda: load_page(current_page[0] + 1, current_sort[0])
+            )
+            next_button.pack(side="left", padx=5)
+    load_page(current_page[0], current_sort[0])
 
 def show_friends():
     clear_main_frame()
-
     profile_image = customtkinter.CTkImage(
         dark_image=Image.open("pfpicon.jpg"),
         size=(30, 30)
@@ -166,26 +171,28 @@ def show_friends():
         friend_label.pack(side="left", padx=10)
 
 def toggle_mode():
-    mode = "dark"
+    global mode
     if mode == "dark":
         mode = "light"
-        customtkinter.set_appearance_mode(mode)
-    if mode == "light":
+    else:
         mode = "dark"
-        customtkinter.set_appearance_mode(mode)
+    customtkinter.set_appearance_mode(mode)
+
+def logout():
+    for widget in root.winfo_children():
+        widget.destroy()
+    create_login_page()
 
 def show_settings():
     clear_main_frame()
     toggle_button = customtkinter.CTkButton(
-
         main_frame,
-        text="Toggle Light mode",
+        text="Toggle Light/Dark mode",
         command=toggle_mode,
         corner_radius=10
     )
     toggle_button.pack(pady=20)
     logout_button = customtkinter.CTkButton(
-
         main_frame,
         text="Log Out",
         command=logout,
@@ -194,7 +201,7 @@ def show_settings():
     logout_button.pack(pady=20)
 
 def show_games():
-    clear_main_frame()  # Clear the current frame content
+    clear_main_frame()
     label = customtkinter.CTkLabel(
         main_frame,
         text="Games",
@@ -205,14 +212,14 @@ def show_games():
     hangman_button = customtkinter.CTkButton(
         main_frame,
         text="Play Hangman",
-        command=lambda: play_hangman(main_frame)  # Pass main_frame
+        command=lambda: play_hangman(main_frame)
     )
     hangman_button.pack(pady=10)
 
     guess_number_button = customtkinter.CTkButton(
         main_frame,
         text="Play Guess the Number",
-        command=lambda: play_guess_number(main_frame)  # Pass main_frame
+        command=lambda: play_guess_number(main_frame)
     )
     guess_number_button.pack(pady=10)
 
@@ -220,6 +227,7 @@ def create_dashboard():
     global main_frame
     top_menu = customtkinter.CTkFrame(master=root, height=100)
     top_menu.pack(fill="x")
+    middle_grey = "#404040"
 
     profile_image = customtkinter.CTkImage(
         dark_image=Image.open("pfpicon.jpg"),
@@ -251,7 +259,8 @@ def create_dashboard():
         command=show_mvp_games,
         corner_radius=10,
         height=70,
-        font=("Helvetica", 20, "bold")
+        font=("Helvetica", 20, "bold"),
+        fg_color=middle_grey
     )
     mvp_button.pack(side="left", padx=10, pady=10)
 
@@ -261,7 +270,8 @@ def create_dashboard():
         command=show_games,
         corner_radius=10,
         height=70,
-        font=("Helvetica", 20, "bold")
+        font=("Helvetica", 20, "bold"),
+        fg_color=middle_grey
     )
     games_button.pack(side="left", padx=10, pady=10)
 
@@ -271,7 +281,8 @@ def create_dashboard():
         command=show_friends,
         corner_radius=10,
         height=70,
-        font=("Helvetica", 20, "bold")
+        font=("Helvetica", 20, "bold"),
+        fg_color=middle_grey
     )
     friends_button.pack(side="left", padx=10, pady=10)
 
@@ -281,7 +292,8 @@ def create_dashboard():
         command=show_settings,
         corner_radius=10,
         height=70,
-        font=("Helvetica", 20, "bold")
+        font=("Helvetica", 20, "bold"),
+        fg_color=middle_grey
     )
     settings_button.pack(side="left", padx=10, pady=10)
 
@@ -330,7 +342,6 @@ def create_login_page():
     frame.pack(pady=20, padx=60, fill="both", expand=True)
 
     steam_image = customtkinter.CTkImage(
-        light_image=Image.open("steamlogo.png"),
         dark_image=Image.open("steamlogo.png"),
         size=(100, 100)
     )
