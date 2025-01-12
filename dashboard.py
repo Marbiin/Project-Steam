@@ -1,9 +1,9 @@
 import customtkinter
-import random
 from PIL import Image
-import tkinter as tk
-from tkinter import ttk
+from raadnummer import play_guess_number
+from galgje import play_hangman
 import json
+import os
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("blue")
@@ -15,16 +15,8 @@ root.title("Steam App")
 VALID_USERNAMES = {"Marvin", "Levi", "Mashal", "Abdullah"}
 VALID_PASSWORD = "pixelpros123"
 
-galgje_state = {}
-raadnummer_state = {}
-
 current_user = None
 main_frame = None
-
-def toggle_mode():
-    current_mode = customtkinter.get_appearance_mode()
-    new_mode = "light" if current_mode == "dark" else "dark"
-    customtkinter.set_appearance_mode(new_mode)
 
 def clear_main_frame():
     for widget in main_frame.winfo_children():
@@ -36,6 +28,108 @@ def logout():
     for widget in root.winfo_children():
         widget.destroy()
     create_login_page()
+
+def show_mvp_games():
+    def apply_filter():
+        selected_filter = filter_dropdown.get()
+        key_mapping = {
+            "Name": "name",
+            "Price": "price",
+            "Owners": "owners",
+            "Positive Ratings": "positive_ratings",
+            "Negative Ratings": "negative_ratings",
+        }
+        key = key_mapping.get(selected_filter, "name")
+
+        try:
+            if key == "owners":
+                sorted_games = sorted(games_data, key=lambda x: int(x[key].split(" - ")[0]))
+            else:
+                sorted_games = sorted(games_data, key=lambda x: x.get(key, 0))
+        except Exception as e:
+            print(f"Error during sorting: {e}")
+            sorted_games = games_data
+
+        display_games(sorted_games)
+
+    def display_games(games):
+        """
+        Clears the current game display and shows games in the given order.
+        """
+        for widget in main_frame.winfo_children():
+            widget.destroy()
+
+        # Re-add the title and filter UI
+        title_label = customtkinter.CTkLabel(
+            main_frame, text="MVP Games", font=("Helvetica", 20, "bold")
+        )
+        title_label.pack(pady=10)
+
+        filter_frame.pack(fill="x", padx=10, pady=5)
+
+        # Add game entries
+        for game in games[:50]:  # Display only the first 50 games
+            game_frame = customtkinter.CTkFrame(main_frame, corner_radius=10)
+            game_frame.pack(fill="x", padx=10, pady=5)
+
+            title = game.get("name", "Unknown Game")
+            price = game.get("price", "Unknown Price")
+            genres = game.get("genres", "Unknown Genres")
+            positive_ratings = game.get("positive_ratings", 0)
+            negative_ratings = game.get("negative_ratings", 0)
+
+            title_label = customtkinter.CTkLabel(
+                game_frame, text=f"Name: {title}", font=("Helvetica", 14, "bold")
+            )
+            title_label.pack(anchor="w", padx=10, pady=2)
+
+            price_label = customtkinter.CTkLabel(
+                game_frame, text=f"Price: ${price:.2f}", font=("Helvetica", 12)
+            )
+            price_label.pack(anchor="w", padx=10, pady=2)
+
+            genres_label = customtkinter.CTkLabel(
+                game_frame, text=f"Genres: {genres}", font=("Helvetica", 12)
+            )
+            genres_label.pack(anchor="w", padx=10, pady=2)
+
+            ratings_label = customtkinter.CTkLabel(
+                game_frame,
+                text=f"Ratings: {positive_ratings} Positive, {negative_ratings} Negative",
+                font=("Helvetica", 12),
+            )
+            ratings_label.pack(anchor="w", padx=10, pady=2)
+    clear_main_frame()
+    file = open("steam.json", "r")
+    games_data = json.load(file)
+    file.close()
+    title_label = customtkinter.CTkLabel(
+        main_frame, text="MVP Games", font=("Helvetica", 20, "bold")
+    )
+    title_label.pack(pady=10)
+
+    for game in games_data[:50]:
+        game_frame = customtkinter.CTkFrame(main_frame, corner_radius=10)
+        game_frame.pack(fill="x", padx=10, pady=5)
+
+        title = game.get("name", "Unknown Game")
+        price = game.get("price", "Unknown Price")
+        genres = game.get("genres", "Unknown Genres")
+
+        title_label = customtkinter.CTkLabel(
+            game_frame, text=f"Name: {title}", font=("Helvetica", 14, "bold")
+        )
+        title_label.pack(anchor="w", padx=10, pady=2)
+
+        price_label = customtkinter.CTkLabel(
+            game_frame, text=f"Price: ${price:.2f}", font=("Helvetica", 12)
+        )
+        price_label.pack(anchor="w", padx=10, pady=2)
+
+        genres_label = customtkinter.CTkLabel(
+            game_frame, text=f"Genres: {genres}", font=("Helvetica", 12)
+        )
+        genres_label.pack(anchor="w", padx=10, pady=2)
 
 def show_friends():
     clear_main_frame()
@@ -71,16 +165,27 @@ def show_friends():
         )
         friend_label.pack(side="left", padx=10)
 
+def toggle_mode():
+    mode = "dark"
+    if mode == "dark":
+        mode = "light"
+        customtkinter.set_appearance_mode(mode)
+    if mode == "light":
+        mode = "dark"
+        customtkinter.set_appearance_mode(mode)
+
 def show_settings():
     clear_main_frame()
     toggle_button = customtkinter.CTkButton(
+
         main_frame,
-        text="Toggle Light/Dark Mode",
+        text="Toggle Light mode",
         command=toggle_mode,
         corner_radius=10
     )
     toggle_button.pack(pady=20)
     logout_button = customtkinter.CTkButton(
+
         main_frame,
         text="Log Out",
         command=logout,
@@ -88,249 +193,28 @@ def show_settings():
     )
     logout_button.pack(pady=20)
 
-def play_hangman():
-    global galgje_state
-    clear_main_frame()
-
-    woordenlijst = ["telefoon", "water", "continent", "laptop", "python", "alfabet"]
-    woord_te_raden = random.choice(woordenlijst)
-    galgje_state = {
-        "woord": woord_te_raden,
-        "geraden_woord": ["_"] * len(woord_te_raden),
-        "fouten": 0,
-        "max_fouten": 6
-    }
-
-    canvas = customtkinter.CTkCanvas(main_frame, width=300, height=400, bg="#0B0F1D", highlightthickness=0)
-    canvas.pack(pady=20)
-
-    canvas.create_line(50, 350, 250, 350, fill="white", width=3)
-    canvas.create_line(150, 350, 150, 50, fill="white", width=3)
-    canvas.create_line(150, 50, 200, 50, fill="white", width=3)
-    canvas.create_line(200, 50, 200, 100, fill="white", width=3)
-
-    def draw_stickman():
-        parts = [
-            lambda: canvas.create_oval(180, 100, 220, 140, outline="white", width=3),
-            lambda: canvas.create_line(200, 140, 200, 220, fill="white", width=3),
-            lambda: canvas.create_line(200, 220, 170, 260, fill="white", width=3),
-            lambda: canvas.create_line(200, 220, 230, 260, fill="white", width=3),
-            lambda: canvas.create_line(200, 160, 170, 200, fill="white", width=3),
-            lambda: canvas.create_line(200, 160, 230, 200, fill="white", width=3),
-        ]
-        if galgje_state["fouten"] <= len(parts):
-            parts[galgje_state["fouten"] - 1]()
-
-    def submit_letter():
-        letter = input_entry.get().strip().lower()
-        input_entry.delete(0, 'end')
-
-        if letter in galgje_state["woord"]:
-            for i, char in enumerate(galgje_state["woord"]):
-                if char == letter:
-                    galgje_state["geraden_woord"][i] = letter
-            result_label.configure(text="Good job!")
-        else:
-            galgje_state["fouten"] += 1
-            draw_stickman()
-            result_label.configure(text=f"Wrong! {galgje_state['max_fouten'] - galgje_state['fouten']} tries left.")
-
-        word_label.configure(text=" ".join(galgje_state["geraden_woord"]))
-
-        if "_" not in galgje_state["geraden_woord"]:
-            result_label.configure(text=f"You won! The word was '{galgje_state['woord']}'.")
-            submit_button.configure(state="disabled")
-        elif galgje_state["fouten"] >= galgje_state["max_fouten"]:
-            result_label.configure(text=f"You lost! The word was '{galgje_state['woord']}'.")
-            submit_button.configure(state="disabled")
-
-    word_label = customtkinter.CTkLabel(main_frame, text=" ".join(galgje_state["geraden_woord"]), font=("Courier", 18))
-    word_label.pack(pady=20)
-
-    input_entry = customtkinter.CTkEntry(main_frame, placeholder_text="Enter a letter")
-    input_entry.pack(pady=10)
-
-    submit_button = customtkinter.CTkButton(main_frame, text="Submit Letter", command=submit_letter)
-    submit_button.pack(pady=10)
-
-    result_label = customtkinter.CTkLabel(main_frame, text="", font=("Arial", 14))
-    result_label.pack(pady=10)
-
-def play_guess_number():
-    global raadnummer_state
-    clear_main_frame()
-
-    raadnummer_state = {
-        "nummer": random.randint(1, 20),
-        "pogingen": 0,
-        "max_pogingen": 5
-    }
-
-    def submit_guess():
-        guess = input_entry.get().strip()
-        input_entry.delete(0, 'end')
-
-        if not guess.isdigit():
-            result_label.configure(text="Enter a valid number.")
-            return
-
-        guess = int(guess)
-        raadnummer_state["pogingen"] += 1
-
-        if guess < raadnummer_state["nummer"]:
-            result_label.configure(text="Higher!")
-        elif guess > raadnummer_state["nummer"]:
-            result_label.configure(text="Lower!")
-        else:
-            result_label.configure(text=f"Correct! The number was {raadnummer_state['nummer']}.")
-            submit_button.configure(state="disabled")
-            return
-
-        if raadnummer_state["pogingen"] >= raadnummer_state["max_pogingen"]:
-            raadnummer_state["nummer"] = random.randint(1, 20)
-            raadnummer_state["pogingen"] = 0
-            result_label.configure(text="Out of tries! The number has been reset.")
-
-    input_entry = customtkinter.CTkEntry(main_frame, placeholder_text="Enter your guess")
-    input_entry.pack(pady=10)
-
-    submit_button = customtkinter.CTkButton(main_frame, text="Submit Guess", command=submit_guess)
-    submit_button.pack(pady=10)
-
-    result_label = customtkinter.CTkLabel(main_frame, text="", font=("Arial", 14))
-    result_label.pack(pady=10)
-
 def show_games():
-    global steam_games
-    # Function code here
-
-    clear_main_frame()
-
-    # Initialize state variables at the top-level scope of the function
-    games_displayed = 0
-    games_per_page = 15
-    current_filter = "name"
-
-    # Sorting games initially by name
-    current_games = sorted(steam_games, key=lambda x: x["name"].lower())
-
-    def update_games():
-        """Update the displayed games based on the current filter."""
-        nonlocal current_filter, current_games
-        if current_filter == "nano":
-            filtered_games = [g for g in steam_games if g["name"] in ["Hangman", "Guess the Number"]]
-        elif current_filter == "popularity":
-            filtered_games = sorted(steam_games, key=lambda x: x["positive_ratings"], reverse=True)
-        elif current_filter == "date":
-            filtered_games = sorted(steam_games, key=lambda x: x["release_date"])
-        elif current_filter == "name":
-            filtered_games = sorted(steam_games, key=lambda x: x["name"].lower())
-        else:
-            filtered_games = steam_games
-
-        current_games.clear()
-        current_games.extend(filtered_games)
-        load_games()
-
-    def load_games():
-        """Display games from the current list, paginated."""
-        nonlocal games_displayed
-        for game in current_games[games_displayed:games_displayed + games_per_page]:
-            game_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
-            game_frame.pack(pady=5, padx=10, fill="x", expand=True)
-
-            game_label = customtkinter.CTkLabel(
-                game_frame,
-                text=game["name"],
-                font=("Arial", 18)
-            )
-            game_label.pack(side="left", padx=10)
-
-            def show_game_details(game=game):
-                """Show detailed game information in a popup."""
-                details_popup = customtkinter.CTkToplevel(root)
-                details_popup.geometry("400x600")
-                details_popup.title(game["name"])
-
-                details_text = f"""
-Name: {game["name"]}
-Release Date: {game["release_date"]}
-Developer: {game["developer"]}
-Publisher: {game["publisher"]}
-Genres: {game["genres"]}
-Platforms: {game["platforms"]}
-Categories: {game["categories"]}
-Achievements: {game["achievements"]}
-Positive Ratings: {game["positive_ratings"]}
-Negative Ratings: {game["negative_ratings"]}
-Price: ${game["price"]}
-"""
-                details_label = customtkinter.CTkLabel(
-                    details_popup,
-                    text=details_text,
-                    font=("Arial", 14),
-                    justify="left",
-                    wraplength=350
-                )
-                details_label.pack(pady=20, padx=20)
-
-            details_button = customtkinter.CTkButton(
-                game_frame,
-                text="Details",
-                command=show_game_details
-            )
-            details_button.pack(side="right", padx=10)
-
-        games_displayed += games_per_page
-
-    def show_more():
-        """Load more games into the list."""
-        load_games()
-
-    def set_filter(new_filter):
-        """Update the filter and reload games."""
-        nonlocal current_filter
-        current_filter = new_filter
-        update_games()
-
-    # Create header and filter options
+    clear_main_frame()  # Clear the current frame content
     label = customtkinter.CTkLabel(
         main_frame,
-        text="Steam Games",
+        text="Games",
         font=("Helvetica", 30, "bold")
     )
     label.pack(pady=10)
 
-    filter_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
-    filter_frame.pack(pady=10, fill="x")
-
-    filter_label = customtkinter.CTkLabel(
-        filter_frame,
-        text="Sort by:",
-        font=("Arial", 14)
-    )
-    filter_label.pack(side="left", padx=5)
-
-    filters = [("Nano", "nano"), ("Popularity", "popularity"), ("Date", "date"), ("Name", "name")]
-    for label_text, filter_value in filters:
-        filter_button = customtkinter.CTkButton(
-            filter_frame,
-            text=label_text,
-            command=lambda fv=filter_value: set_filter(fv)
-        )
-        filter_button.pack(side="left", padx=5)
-
-    # Initialize games list
-    load_games()
-
-    # Add "Show More" button
-    show_more_button = customtkinter.CTkButton(
+    hangman_button = customtkinter.CTkButton(
         main_frame,
-        text="Show More",
-        command=show_more
+        text="Play Hangman",
+        command=lambda: play_hangman(main_frame)  # Pass main_frame
     )
-    show_more_button.pack(pady=10)
+    hangman_button.pack(pady=10)
 
+    guess_number_button = customtkinter.CTkButton(
+        main_frame,
+        text="Play Guess the Number",
+        command=lambda: play_guess_number(main_frame)  # Pass main_frame
+    )
+    guess_number_button.pack(pady=10)
 
 def create_dashboard():
     global main_frame
@@ -361,9 +245,19 @@ def create_dashboard():
     main_frame = customtkinter.CTkFrame(master=root)
     main_frame.pack(fill="both", expand=True)
 
+    mvp_button = customtkinter.CTkButton(
+        top_menu,
+        text="MVP Games",
+        command=show_mvp_games,
+        corner_radius=10,
+        height=70,
+        font=("Helvetica", 20, "bold")
+    )
+    mvp_button.pack(side="left", padx=10, pady=10)
+
     games_button = customtkinter.CTkButton(
         top_menu,
-        text="Games",
+        text="Nano Games (L)",
         command=show_games,
         corner_radius=10,
         height=70,
@@ -391,7 +285,7 @@ def create_dashboard():
     )
     settings_button.pack(side="left", padx=10, pady=10)
 
-    show_games()
+    show_mvp_games()
 
 def login():
     username = entry1.get()
@@ -435,11 +329,10 @@ def create_login_page():
     frame = customtkinter.CTkFrame(master=root)
     frame.pack(pady=20, padx=60, fill="both", expand=True)
 
-    # Load and display the Steam logo above the header
     steam_image = customtkinter.CTkImage(
-        light_image=Image.open("steamlogo.png"),  # Ensure the path is correct
+        light_image=Image.open("steamlogo.png"),
         dark_image=Image.open("steamlogo.png"),
-        size=(100, 100)  # Adjust the size as needed
+        size=(100, 100)
     )
     logo_label = customtkinter.CTkLabel(master=frame, image=steam_image, text="")
     logo_label.pack(pady=(20, 10))
