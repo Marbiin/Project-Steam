@@ -1,44 +1,45 @@
 import random
+from customtkinter import CTkLabel, CTkEntry, CTkButton
 
-def play_game():
-    print('\nDit is het Raad Nummer Spel!\n'
-          'Je hebt 5 kansen om de juiste nummer tussen 1 en 20 te raden, als je het niet doet dan verandert de willekeurige nummer naar een andere, ook tussen 1 en 20.\n')
+def play_guess_number(main_frame):
+    for widget in main_frame.winfo_children():
+        widget.destroy()
+    raadnummer_state = {
+        "nummer": random.randint(1, 20),
+        "pogingen": 0,
+        "max_pogingen": 5
+    }
 
-    nummer_te_raden = random.randint(1, 20)
-    pogingen = 0
-    pogingen_tot_reset = 0
-    resets = 0
+    def submit_guess():
+        guess = input_entry.get().strip()
+        input_entry.delete(0, 'end')
 
-    while True:
-        raad = input("Kies een nummer tussen 1 en 20: ")
-        if raad.isdigit():
-            raad = int(raad)
-            if raad <= 0 or raad > 20 :
-                print("Tussen 1 en 20.")
-                continue
+        if not guess.isdigit():
+            result_label.configure(text="Enter a valid number.")
+            return
+
+        guess = int(guess)
+        raadnummer_state["pogingen"] += 1
+
+        if guess < raadnummer_state["nummer"]:
+            result_label.configure(text="Higher!")
+        elif guess > raadnummer_state["nummer"]:
+            result_label.configure(text="Lower!")
         else:
-            print("Een getal.")
-            continue
+            result_label.configure(text=f"Correct! The number was {raadnummer_state['nummer']}.")
+            submit_button.configure(state="disabled")
+            return
 
-        if pogingen_tot_reset == 5:
-            print("Nummer is veranderd.")
-            nummer_te_raden = random.randint(1, 20)
-            pogingen_tot_reset = 0
-            resets += 1
+        if raadnummer_state["pogingen"] >= raadnummer_state["max_pogingen"]:
+            raadnummer_state["nummer"] = random.randint(1, 20)
+            raadnummer_state["pogingen"] = 0
+            result_label.configure(text="Out of tries! The number has been reset.")
 
-        elif raad > nummer_te_raden:
-            pogingen += 1
-            pogingen_tot_reset += 1
-            print("Lager")
+    input_entry = CTkEntry(main_frame, placeholder_text="Enter your guess")
+    input_entry.pack(pady=10)
 
-        elif raad < nummer_te_raden:
-            pogingen += 1
-            pogingen_tot_reset += 1
-            print("Hoger")
+    submit_button = CTkButton(main_frame, text="Submit Guess", command=submit_guess)
+    submit_button.pack(pady=10)
 
-        elif raad == nummer_te_raden:
-            print("Goedzo!")
-            print('')
-            print(f'Je hebt {pogingen} keer geraden.')
-            print(f'Nummer is {resets} gereset.')
-            break
+    result_label = CTkLabel(main_frame, text="", font=("Arial", 14))
+    result_label.pack(pady=10)
