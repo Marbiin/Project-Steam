@@ -19,6 +19,7 @@ mode = "dark"
 def clear_main_frame():
     for widget in main_frame.winfo_children():
         widget.destroy()
+        
 def show_health_warning():
     popup = customtkinter.CTkToplevel(root)
     popup.geometry("400x200")
