@@ -419,7 +419,7 @@ def show_forgot_password_popup():
 
     popup_label = customtkinter.CTkLabel(
         popup,
-        text="Usernames: Levi, Mashal, Marvin & Abdullah\nPassword: pixelpros123",
+        text="Usernames: Levi & Abdullah\nPassword: pixelpros123",
         font=("Arial", 14),
         justify="center"
     )
