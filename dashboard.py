@@ -3,6 +3,7 @@ from PIL import Image
 from raadnummer import play_guess_number
 from galgje import play_hangman
 import json
+from AI import most_frequent_genre, price_spread, predict_playtime
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("blue")
@@ -11,14 +12,13 @@ root = customtkinter.CTk()
 root.geometry("1920x1080")
 root.title("Steam App")
 
-VALID_USERNAMES = {"Levi", "Abdullah"}
+VALID_USERNAMES = {"Marvin", "Levi", "Mashal", "Abdullah"}
 VALID_PASSWORD = "pixelpros123"
 mode = "dark"
 
 def clear_main_frame():
     for widget in main_frame.winfo_children():
         widget.destroy()
-
 def show_health_warning():
     popup = customtkinter.CTkToplevel(root)
     popup.geometry("400x200")
@@ -49,6 +49,59 @@ def show_health_warning():
     )
     ok_button.pack(pady=20)
     popup.wait_window()
+
+def show_statistics():
+    clear_main_frame()
+
+    title_label = customtkinter.CTkLabel(
+        main_frame, text="Statistics", font=("Helvetica", 30, "bold")
+    )
+    title_label.pack(pady=20)
+
+    genre, count = most_frequent_genre()
+    genre_label = customtkinter.CTkLabel(
+        main_frame, text=f"Most Frequent Genre: {genre} ({count} occurrences)", font=("Helvetica", 20)
+    )
+    genre_label.pack(pady=10)
+
+    spread = price_spread()
+    spread_label = customtkinter.CTkLabel(
+        main_frame, text=f"Price Spread (Standard Deviation): {spread:.2f} €", font=("Helvetica", 20)
+    )
+    spread_label.pack(pady=10)
+
+    def predict_playtime_for_price():
+        try:
+            user_price = float(price_entry.get())
+            # Call the updated predict_playtime function
+            predicted_time = predict_playtime(user_price)
+            # Display result
+            if predicted_time == 0:
+                result_label.configure(
+                    text="No games found in this price range. Try another price."
+                )
+            else:
+                result_label.configure(
+                    text=f"Predicted Average Playtime: {predicted_time:.2f} hours"
+                )
+        except ValueError:
+            result_label.configure(text="Please enter a valid numeric price.")
+
+    price_label = customtkinter.CTkLabel(
+        main_frame, text="Price:", font=("Helvetica", 16)
+    )
+    price_label.pack(pady=10)
+
+    price_entry = customtkinter.CTkEntry(main_frame, placeholder_text="Enter price")
+    price_entry.pack(pady=5)
+
+    predict_button = customtkinter.CTkButton(
+        main_frame, text="Predict Playtime", command=predict_playtime_for_price
+    )
+    predict_button.pack(pady=5)
+
+    result_label = customtkinter.CTkLabel(main_frame, text="", font=("Helvetica", 16))
+    result_label.pack(pady=10)
 
 def show_mvp_games():
     clear_main_frame()
@@ -295,6 +348,17 @@ def create_dashboard():
     )
     mvp_button.pack(side="left", padx=10, pady=10)
 
+    statistics_button = customtkinter.CTkButton(
+        top_menu,
+        text="Statistics",
+        command=show_statistics,
+        corner_radius=10,
+        height=70,
+        font=("Helvetica", 20, "bold"),
+        fg_color=middle_grey
+    )
+    statistics_button.pack(side="left", padx=10, pady=10)
+
     games_button = customtkinter.CTkButton(
         top_menu,
         text="Nano Games (L)",
@@ -329,7 +393,7 @@ def create_dashboard():
     settings_button.pack(side="left", padx=10, pady=10)
 
     root.after(900000, show_health_warning)
-    
+
     show_mvp_games()
 
 def login():
