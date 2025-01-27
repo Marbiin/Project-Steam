@@ -73,9 +73,7 @@ def show_statistics():
     def predict_playtime_for_price():
         try:
             user_price = float(price_entry.get())
-            # Call the updated predict_playtime function
             predicted_time = predict_playtime(user_price)
-            # Display result
             if predicted_time == 0:
                 result_label.configure(
                     text="No games found in this price range. Try another price."
