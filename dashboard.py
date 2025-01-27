@@ -12,7 +12,7 @@ root = customtkinter.CTk()
 root.geometry("1920x1080")
 root.title("Steam App")
 
-VALID_USERNAMES = {"Marvin", "Levi", "Mashal", "Abdullah"}
+VALID_USERNAMES = {"Levi", "Abdullah"}
 VALID_PASSWORD = "pixelpros123"
 mode = "dark"
 
