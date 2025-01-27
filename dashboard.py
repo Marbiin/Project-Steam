@@ -328,7 +328,7 @@ def create_dashboard():
     )
     settings_button.pack(side="left", padx=10, pady=10)
 
-    root.after(3000, show_health_warning)
+    root.after(900000, show_health_warning)
     
     show_mvp_games()
 
