@@ -19,6 +19,37 @@ def clear_main_frame():
     for widget in main_frame.winfo_children():
         widget.destroy()
 
+def show_health_warning():
+    popup = customtkinter.CTkToplevel(root)
+    popup.geometry("400x200")
+    popup.title("Health Warning")
+    popup.transient(root)
+    popup.grab_set()
+
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    window_width = 400
+    window_height = 200
+    position_x = (screen_width - window_width) // 2
+    position_y = (screen_height - window_height) // 2
+    popup.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+
+    warning_label = customtkinter.CTkLabel(
+        popup,
+        text="You've been in front of the screen for over 15 minutes.\nConsider taking a break for your own health!",
+        font=("Arial", 14),
+        justify="center"
+    )
+    warning_label.pack(expand=True, padx=20, pady=20)
+
+    ok_button = customtkinter.CTkButton(
+        popup,
+        text="OK",
+        command=popup.destroy
+    )
+    ok_button.pack(pady=20)
+    popup.wait_window()
+
 def show_mvp_games():
     clear_main_frame()
 
@@ -297,6 +328,8 @@ def create_dashboard():
     )
     settings_button.pack(side="left", padx=10, pady=10)
 
+    root.after(3000, show_health_warning)
+    
     show_mvp_games()
 
 def login():
